@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Мои дедлайны</title>
+<!-- Скрипт ИИ (Puter.js) -->
+<script src="https://js.puter.com/v2/" defer></script>
+<style>
+  /* --- ВАШИ СТИЛИ --- */
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  :root {
+    --bg: #f4f6fb; --surface: #fff; --text: #0f172a; --accent: #4f46e5; --accent-2: #7c3aed; --danger: #ef4444;
+  }
+  [data-theme="dark"] {
+    --bg: #0b1020; --surface: #151b2e; --text: #e8ecf6; --accent: #6366f1; --accent-2: #a855f7;
+  }
+  body { margin: 0; font-family: sans-serif; background: var(--bg); color: var(--text); }
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: center; justify-content: center; }
+  .overlay.open { display: flex; }
+  .modal { background: var(--surface); padding: 24px; border-radius: 16px; width: 100%; max-width: 400px; }
+  .field { display: flex; flex-direction: column; margin-bottom: 12px; }
+  .field input, .field textarea { padding: 10px; border-radius: 8px; border: 1px solid #ccc; margin-top: 4px; }
+  .btn { padding: 12px; border: none; border-radius: 8px; background: var(--accent); color: #fff; cursor: pointer; width: 100%; font-weight: bold; }
+  .btn-add { width: auto; padding: 12px 24px; border-radius: 30px; }
+  .auth-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+  .auth-tab { flex: 1; padding: 10px; border: none; background: transparent; cursor: pointer; font-weight: bold; color: #666; }
+  .auth-tab.active { background: var(--accent); color: #fff; border-radius: 8px; }
+  .form-error { color: var(--danger); font-size: 14px; margin-bottom: 10px; }
+  .card { background: var(--surface); padding: 16px; border-radius: 12px; margin-bottom: 12px; border: 1px solid #ddd; color: var(--text); }
+  .topbar { display: flex; justify-content: space-between; padding: 20px; max-width: 800px; margin: 0 auto; }
+  .container { max-width: 800px; margin: 0 auto; padding: 20px; text-align: center; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tg-box { margin-top: 20px; padding: 15px; border: 1px dashed var(--accent); border-radius: 8px; text-align: left; }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 50% { transform: translateX(6px); } 75% { transform: translateX(-4px); } }
+  .shake { animation: shake .4s ease !important; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div><b>🗓️ Мои дедлайны</b></div>
+  <div>
+    <span id="userBadge" hidden></span>
+    <button class="btn" style="width:auto; padding: 6px 12px;" id="logoutBtn" hidden>Выйти</button>
+    <button id="themeToggle" style="background:none; border:none; cursor:pointer; font-size: 20px;">☀️</button>
+  </div>
+</header>
+
+<main class="container">
+  <h1>Дедлайны под контролем</h1>
+  <button class="btn btn-add" id="addBtn" hidden>+ Добавить дедлайн</button>
+  
+  <div class="tg-box" id="tgBox" hidden>
+    <p><b>Telegram-уведомления:</b></p>
+    <p>Напишите вашему боту <b>/start</b>, чтобы узнать Chat ID. Вставьте его ниже:</p>
+    <input type="text" id="tgChatIdInput" placeholder="Вставьте Chat ID сюда" style="padding:8px; width: 60%;">
+    <button class="btn" style="width: auto; padding: 8px 16px;" id="saveTgBtn">Сохранить</button>
+  </div>
+
+  <div id="list" style="margin-top: 30px; text-align: left;"></div>
+</main>
+
+<!-- Окно Авторизации -->
+<div class="overlay open" id="authOverlay">
+  <div class="modal" id="authModal">
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="reg" type="button">Регистрация</button>
+      <button class="auth-tab" data-tab="log" type="button">Вход</button>
+    </div>
+    
+    <form id="registerForm" novalidate>
+      <h2>Создать аккаунт</h2>
+      <label class="field">Имя <input type="text" id="regName" required></label>
+      <label class="field">Email <input type="email" id="regEmail" required></label>
+      <label class="field">Пароль <input type="password" id="regPass" minlength="6" required></label>
+      <p class="form-error" id="regError" hidden></p>
+      <button class="btn" type="submit">Зарегистрироваться</button>
+    </form>
+
+    <form id="loginForm" hidden novalidate>
+      <h2>Вход</h2>
+      <label class="field">Email <input type="email" id="logEmail" required></label>
+      <label class="field">Пароль <input type="password" id="logPass" required></label>
+      <p class="form-error" id="logError" hidden></p>
+      <button class="btn" type="submit">Войти</button>
+    </form>
+  </div>
+</div>
+
+<!-- Окно Дедлайна -->
+<div class="overlay" id="dlOverlay">
+  <div class="modal" id="dlModal">
+    <h2>Новый дедлайн</h2>
+    <form id="dlForm" novalidate>
+      <label class="field">Название <input type="text" id="dlTitle" required></label>
+      <div class="grid-2">
+        <label class="field">Срок с <input type="date" id="dlStart" required></label>
+        <label class="field">по <input type="date" id="dlEnd" required></label>
+      </div>
+      <label class="field">Описание <textarea id="dlDesc" rows="3"></textarea></label>
+      
+      <!-- Кнопка ИИ -->
+      <button type="button" class="btn" style="background: #f59e0b; margin-bottom: 10px;" 
+              onclick="generateDescription(document.getElementById('dlTitle').value, this)">
+        ✨ Сгенерировать описание с помощью ИИ
+      </button>
+
+      <p class="form-error" id="dlError" hidden></p>
+      <button class="btn" type="submit">Готово</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  // --- Глобальные переменные ---
+  let token = localStorage.getItem('token');
+  const API_URL = '/api';
+
+  // --- Работа с API ---
+  async function api(path, method = 'GET', body = null) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(API_URL + path, { method, headers, body: body ? JSON.stringify(body) : null });
+    if (!res.ok) throw await res.json();
+    return res.json();
+  }
+
+  // --- Управление UI ---
+  const $ = s => document.querySelector(s);
+  const show = s => $(s).hidden = false;
+  const hide = s => $(s).hidden = true;
+
+  function updateUI() {
+    if (token) {
+      hide('#authOverlay'); show('#userBadge'); show('#logoutBtn'); show('#addBtn'); show('#tgBox');
+      $('#userBadge').innerText = '👤 Профиль'; 
+      $('#authOverlay').classList.remove('open');
+      loadDeadlines();
+    } else {
+      $('#authOverlay').classList.add('open');
+      hide('#userBadge'); hide('#logoutBtn'); hide('#addBtn'); hide('#tgBox');
+      $('#list').innerHTML = '';
+    }
+  }
+
+  // --- Функция для ИИ (Puter.js) ---
+  async function generateDescription(title, btn) {
+    if (!title) { alert("Сначала введите название дедлайна!"); return; }
+    if (typeof puter === 'undefined') { alert("ИИ не загрузился. Проверьте VPN."); return; }
+    
+    const originalText = btn.innerText;
+    btn.innerText = "⏳ Генерирую...";
+    try {
+      const response = await puter.ai.chat(`Напиши краткое и понятное описание для задачи: ${title}. Верни только текст описания.`);
+      document.getElementById('dlDesc').value = response; 
+    } catch (error) {
+      alert('Ошибка ИИ: ' + error.message);
+    } finally {
+      btn.innerText = originalText;
+    }
+  }
+
+  // --- Авторизация ---
+  document.querySelectorAll('.auth-tab').forEach(tab => {
+    tab.onclick = () => {
+      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      if (tab.dataset.tab === 'reg') { show('#registerForm'); hide('#loginForm'); }
+      else { hide('#registerForm'); show('#loginForm'); }
+    };
+  });
+
+  $('#registerForm').onsubmit = async (e) => {
+    e.preventDefault();
+    hide('#regError');
+    try {
+      const data = await api('/register', 'POST', {
+        name: $('#regName').value,
+        email: $('#regEmail').value,
+        password: $('#regPass').value
+      });
+      token = data.token;
+      localStorage.setItem('token', token);
+      updateUI();
+    } catch (err) {
+      $('#regError').innerText = err.error || 'Ошибка';
+      show('#regError');
+      $('#authModal').classList.add('shake');
+      setTimeout(() => $('#authModal').classList.remove('shake'), 400);
+    }
+  };
+
+  $('#loginForm').onsubmit = async (e) => {
+    e.preventDefault();
+    hide('#logError');
+    try {
+      const data = await api('/login', 'POST', {
+        email: $('#logEmail').value,
+        password: $('#logPass').value
+      });
+      token = data.token;
+      localStorage.setItem('token', token);
+      updateUI();
+    } catch (err) {
+      $('#logError').innerText = err.error || 'Ошибка';
+      show('#logError');
+      $('#authModal').classList.add('shake');
+      setTimeout(() => $('#authModal').classList.remove('shake'), 400);
+    }
+  };
+
+  $('#logoutBtn').onclick = () => {
+    token = null;
+    localStorage.removeItem('token');
+    updateUI();
+  };
+
+  // --- Telegram ---
+  $('#saveTgBtn').onclick = async () => {
+    const chat_id = $('#tgChatIdInput').value;
+    if (!chat_id) return;
+    try {
+      await api('/link-telegram', 'POST', { chat_id });
+      alert('Telegram успешно привязан!');
+    } catch (e) { alert('Ошибка привязки'); }
+  };
+
+  // --- Дедлайны ---
+  $('#addBtn').onclick = () => {
+    $('#dlForm').reset();
+    hide('#dlError');
+    $('#dlOverlay').classList.add('open');
+  };
+
+  $('#dlForm').onsubmit = async (e) => {
+    e.preventDefault();
+    hide('#dlError');
+    try {
+      await api('/deadlines', 'POST', {
+        title: $('#dlTitle').value,
+        start_date: $('#dlStart').value,
+        end_date: $('#dlEnd').value,
+        description: $('#dlDesc').value
+      });
+      $('#dlOverlay').classList.remove('open');
+      loadDeadlines();
+    } catch (err) {
+      $('#dlError').innerText = err.error || 'Ошибка';
+      show('#dlError');
+      $('#dlModal').classList.add('shake');
+      setTimeout(() => $('#dlModal').classList.remove('shake'), 400);
+    }
+  };
+
+  async function loadDeadlines() {
+    try {
+      const items = await api('/deadlines');
+      const list = $('#list');
+      list.innerHTML = items.length ? '' : '<p>Нет дедлайнов</p>';
+      
+      items.forEach(item => {
+        const today = new Date().toISOString().split('T')[0];
+        let status = 'В процессе', color = '#4f46e5';
+        if (item.end_date < today) { status = 'Просрочен'; color = '#ef4444'; }
+        else if (item.start_date > today) { status = 'Предстоит'; color = '#f59e0b'; }
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between;">
+            <h3 style="margin:0;">${item.title}</h3>
+            <button onclick="deleteDeadline(${item.id})" style="background:none; border:none; cursor:pointer; color:red;">✕</button>
+          </div>
+          <p style="font-size: 14px; color: #666;">📅 ${item.start_date} — ${item.end_date}</p>
+          <p>${item.description || ''}</p>
+          <span style="background:${color}22; color:${color}; padding:4px 8px; border-radius:10px; font-size:12px; font-weight:bold;">${status}</span>
+        `;
+        list.appendChild(card);
+      });
+    } catch (e) { console.error(e); }
+  }
+
+  window.deleteDeadline = async (id) => {
+    if (!confirm('Удалить дедлайн?')) return;
+    await api('/deadlines/' + id, 'DELETE');
+    loadDeadlines();
+  };
+
+  // --- Тема ---
+  const themeToggle = $('#themeToggle');
+  themeToggle.onclick = () => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    themeToggle.innerText = isDark ? '☀️' : '🌙';
+  };
+
+  // --- Инициализация ---
+  updateUI();
+</script>
+</body>
+</html>
