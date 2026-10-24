@@ -5,7 +5,7 @@
 [functions]
   directory = "functions"
   node_bundler = "esbuild"
-  external_node_modules = ["express", "serverless-http", "bcryptjs", "jsonwebtoken", "cors"]
+  external_node_modules = ["express", "serverless-http", "@libsql/client", "bcryptjs", "jsonwebtoken", "cors"]
 
 [[redirects]]
   from = "/api/*"
