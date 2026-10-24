@@ -3,7 +3,7 @@
   command = ""
 
 [functions]
-  directory = "functions"  # <-- Если папка теперь в корне
+  directory = "functions"
   node_bundler = "esbuild"
   external_node_modules = ["express", "serverless-http", "@libsql/client", "bcryptjs", "jsonwebtoken", "cors"]
 
