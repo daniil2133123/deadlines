@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { createClient } = require('@libsql/client/web'); // Важно: /web
+const { createClient } = require('@libsql/client'); // Важно: /web
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
@@ -125,7 +125,10 @@ app.delete('/api/deadlines/:id', authenticateToken, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
+// Добавьте этот маршрут где-нибудь до экспорта
+app.get('/api/ping', (req, res) => {
+  res.json({ ok: true, message: 'Функция работает!' });
+});
 // Экспорт для Netlify
 module.exports = app;
 
