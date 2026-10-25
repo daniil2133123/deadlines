@@ -52,32 +52,31 @@ const authenticateToken = (req, res, next) => {
 };
 
 // --- АВТОРИЗАЦИЯ ---
-app.post('/api/login', async (req, res) => {
-  const email = req.body.email ? req.body.email.trim().toLowerCase() : ""; // Убираем пробелы и делаем строчными
+app.post('/api/register', async (req, res) => {
+  const name = req.body.name ? req.body.name.trim() : "";
+  const email = req.body.email ? req.body.email.trim().toLowerCase() : "";
   const password = req.body.password;
 
   try {
     const database = await getDb();
-    const result = await database.execute({ 
-      sql: `SELECT * FROM users WHERE LOWER(email) = ?`, 
-      args: [email] 
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const result = await database.execute({
+      sql: `INSERT INTO users (name, email, password) VALUES (?, ?, ?)`,
+      args: [name, email, hashedPassword]
     });
     
-    const user = result.rows[0];
-    if (!user) {
-      return res.status(400).json({ error: "Пользователь с таким email не найден" }); // Честная ошибка
-    }
+    const userId = Number(result.lastInsertRowid);
+    const token = jwt.sign({ id: userId, email }, JWT_SECRET);
+    res.json({ token, user: { id: userId, name, email } });
     
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(400).json({ error: "Неверный пароль" }); // Честная ошибка
-    }
-
-    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET);
-    res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
   } catch (error) {
-    console.error("ОШИБКА БАЗЫ:", error);
-    res.status(500).json({ error: "Ошибка базы данных: " + error.message }); // Если база упала - мы это увидим
+    console.error("ОШИБКА РЕГИСТРАЦИИ:", error); // Выведет ошибку в логи Railway
+    // Если ошибка связана с уникальностью email:
+    if (error.message && error.message.includes("UNIQUE")) {
+      return res.status(400).json({ error: "Этот email уже зарегистрирован" });
+    }
+    // Показываем настоящую ошибку
+    res.status(500).json({ error: "Ошибка базы: " + error.message }); 
   }
 });
 
