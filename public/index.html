@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<!-- Календарь Flatpickr -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <title>Мои дедлайны</title>
 <script src="https://js.puter.com/v2/" defer></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -212,8 +215,8 @@
     <form id="dlForm">
       <label class="field">Название <input type="text" id="dlTitle" required></label>
       <div class="grid-2">
-        <label class="field">Срок с <input type="date" id="dlStart" required></label>
-        <label class="field">по <input type="date" id="dlEnd" required></label>
+        <label class="field">Срок с <input type="text" id="dlStart" placeholder="Выберите дату" required></label>
+<label class="field">по <input type="text" id="dlEnd" placeholder="Выберите дату" required></label>
       </div>
       <label class="field">Описание <textarea id="dlDesc" rows="3"></textarea></label>
       <button type="button" class="btn-primary btn-block" style="background: var(--warning); margin-bottom: 15px; font-size: 0.9rem; padding: 10px;" onclick="generateDescription(document.getElementById('dlTitle').value, this)">
@@ -450,6 +453,18 @@
     localStorage.removeItem('token');
     updateUI();
   };
+  // Инициализация красивого календаря для iPhone и Android
+  flatpickr("#dlStart", {
+    dateFormat: "Y-m-d",
+    locale: "ru",
+    disableMobile: true
+  });
+
+  flatpickr("#dlEnd", {
+    dateFormat: "Y-m-d",
+    locale: "ru",
+    disableMobile: true
+  });
 
   // --- ДЕДЛАЙНЫ ---
   $('#addBtn').onclick = () => {
@@ -457,21 +472,23 @@
     $('#dlError').hidden = true;
     $('#dlOverlay').classList.add('open');
   };
+  // --- ДЕДЛАЙНЫ ---
+  $('#addBtn').onclick = () => {
+    $('#dlForm').reset();
+    $('#dlError').hidden = true;
+    $('#dlOverlay').classList.add('open');
+  };
 
-    $('#dlForm').onsubmit = async (e) => {
+      $('#dlForm').onsubmit = async (e) => {
     e.preventDefault();
     
-    // ХИТРОСТЬ ДЛЯ SAFARI: снимаем фокус, чтобы браузер применил выбранные даты
-    document.activeElement.blur();
-
     const title = $('#dlTitle').value;
     const start = $('#dlStart').value;
     const end = $('#dlEnd').value;
     const desc = $('#dlDesc').value;
 
-    // Проверка на пустые даты (для iPhone)
     if (!start || !end) {
-      $('#dlError').innerText = "⚠️ Пожалуйста, выберите даты в календаре и обязательно нажмите 'Готово' на колесике.";
+      $('#dlError').innerText = "⚠️ Пожалуйста, выберите обе даты в календаре.";
       $('#dlError').hidden = false;
       return;
     }
