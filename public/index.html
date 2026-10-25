@@ -413,23 +413,34 @@
     };
   });
 
-    $('#registerForm').onsubmit = async (e) => {
+     $('#registerForm').onsubmit = async (e) => {
     e.preventDefault();
     $('#regError').hidden = true;
     
     try {
-      const data = await api('/register', 'POST', {
-        name: $('#regName').value,
-        email: $('#regEmail').value.trim().toLowerCase(),
-        password: $('#regPass').value
+      const res = await fetch(API_URL + '/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: $('#regName').value,
+          email: $('#regEmail').value.trim().toLowerCase(),
+          password: $('#regPass').value
+        })
       });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        alert("ОШИБКА: " + data.error); // Покажет точный текст от сервера
+        return;
+      }
+
       token = data.token;
       localStorage.setItem('token', token);
       updateUI();
+      
     } catch (err) {
-      alert("ОШИБКА СЕРВЕРА: " + JSON.stringify(err)); // <--- ВОТ ЭТО ПОКАЖЕТ ПРАВДУ
-      $('#regError').innerText = err.error || 'Ошибка регистрации';
-      $('#regError').hidden = false;
+      alert("СЕТЕВАЯ ОШИБКА: " + err.message); // Покажет, если нет связи с сервером
     }
   };
 
