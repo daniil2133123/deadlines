@@ -109,7 +109,8 @@ app.post('/api/deadlines', authenticateToken, async (req, res) => {
       sql: `INSERT INTO deadlines (user_id, title, start_date, end_date, description) VALUES (?, ?, ?, ?, ?)`,
       args: [req.user.id, title, start_date, end_date, description]
     });
-    res.json({ id: result.lastInsertRowid, title, start_date, end_date, description });
+        const newId = Number(result.lastInsertRowid);
+    res.json({ id: newId, title, start_date, end_date, description });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
