@@ -476,65 +476,39 @@
       $('#logError').hidden = false;
     }
   };
-  async function loadDeadlines() {
+   async function loadDeadlines() {
     try {
-       alert("2. Пытаюсь загрузить дедлайны...");
       const items = await api('/deadlines');
+      
       const list = $('#list');
       list.innerHTML = '';
       $('#empty').hidden = items.length > 0;
 
-      checkNotifications(items);
-
       items.forEach(item => {
         const today = new Date(); today.setHours(0,0,0,0);
         const end = new Date(item.end_date); end.setHours(0,0,0,0);
-        const diffTime = end - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const diffDays = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
         
         let statusClass = 'active';
         let statusText = 'В процессе';
-        let daysText = '';
+        let daysText = `Осталось ${diffDays} дн.`;
         
-        if (diffDays < 0) {
-          statusClass = 'danger';
-          statusText = 'Просрочено';
-          daysText = `Просрочено на ${Math.abs(diffDays)} дн.`;
-        } else if (diffDays === 0) {
-          statusClass = 'warning';
-          statusText = 'Сегодня';
-          daysText = 'Последний день!';
-        } else if (diffDays <= 3) {
-          statusClass = 'warning';
-          statusText = 'Скоро';
-          daysText = `Осталось ${diffDays} дн.`;
-        } else {
-          daysText = `Осталось ${diffDays} дн.`;
-        }
+        if (diffDays < 0) { statusClass = 'danger'; statusText = 'Просрочено'; }
+        else if (diffDays === 0) { statusClass = 'warning'; statusText = 'Сегодня'; }
 
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
           <div class="card-header">
             <h3 class="card-title">${item.title}</h3>
-            <button class="card-delete" onclick="deleteDeadline(${item.id})">✕</button>
           </div>
-          <div class="card-dates">📅 ${item.start_date} — ${item.end_date}</div>
           <p class="card-desc">${item.description || 'Без описания'}</p>
-          <div class="card-footer">
-            <span class="badge ${statusClass}">${statusText}</span>
-            <span class="days-left" style="color: var(--${statusClass === 'active' ? 'muted' : statusClass})">${daysText}</span>
-          </div>
         `;
         list.appendChild(card);
       });
-    } catch (e) { 
-      console.error(e); 
-      if (e.error && e.error.includes('jwt')) {
-        localStorage.removeItem('token');
-        token = null;
-        updateUI();
-      }
+    } catch (e) {
+      // Если произошла ошибка - показываем её огромным окном!
+      alert("ОШИБКА ЗАГРУЗКИ: " + JSON.stringify(e));
     }
   }
   
