@@ -52,20 +52,32 @@ const authenticateToken = (req, res, next) => {
 };
 
 // --- АВТОРИЗАЦИЯ ---
-app.post('/api/register', async (req, res) => {
-  const { name, email, password } = req.body;
+app.post('/api/login', async (req, res) => {
+  const email = req.body.email ? req.body.email.trim().toLowerCase() : ""; // Убираем пробелы и делаем строчными
+  const password = req.body.password;
+
   try {
     const database = await getDb();
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const result = await database.execute({
-      sql: `INSERT INTO users (name, email, password) VALUES (?, ?, ?)`,
-      args: [name, email, hashedPassword]
+    const result = await database.execute({ 
+      sql: `SELECT * FROM users WHERE LOWER(email) = ?`, 
+      args: [email] 
     });
-    const userId = Number(result.lastInsertRowid); // Фикс BigInt
-    const token = jwt.sign({ id: userId, email }, JWT_SECRET);
-    res.json({ token, user: { id: userId, name, email } });
+    
+    const user = result.rows[0];
+    if (!user) {
+      return res.status(400).json({ error: "Пользователь с таким email не найден" }); // Честная ошибка
+    }
+    
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(400).json({ error: "Неверный пароль" }); // Честная ошибка
+    }
+
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET);
+    res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
   } catch (error) {
-    res.status(400).json({ error: "Email уже существует" });
+    console.error("ОШИБКА БАЗЫ:", error);
+    res.status(500).json({ error: "Ошибка базы данных: " + error.message }); // Если база упала - мы это увидим
   }
 });
 
