@@ -444,19 +444,33 @@
     }
   };
 
-  $('#loginForm').onsubmit = async (e) => {
+    $('#loginForm').onsubmit = async (e) => {
     e.preventDefault();
     $('#logError').hidden = true;
+    
+    const email = $('#logEmail').value.trim().toLowerCase();
+    const password = $('#logPass').value;
+
     try {
-      const data = await api('/login', 'POST', {
-        email: $('#logEmail').value,
-        password: $('#logPass').value
+      const res = await fetch(API_URL + '/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
       });
+      
+      const data = await res.json();
+      if (!res.ok) throw data;
+      
       token = data.token;
       localStorage.setItem('token', token);
+      
+      // ОКНО №1 (Проверяем, что токен получен)
+      alert("1. УСПЕХ! Сервер выдал токен: " + token.substring(0, 10) + "...");
+      
       updateUI();
+      
     } catch (err) {
-      $('#logError').innerText = err.error || 'Неверный логин или пароль';
+      $('#logError').innerText = err.error || 'Неверный email или пароль';
       $('#logError').hidden = false;
     }
   };
