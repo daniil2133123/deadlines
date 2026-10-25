@@ -180,7 +180,7 @@ app.get('/api/telegram-cron', async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 });
 
-module.exports = app;
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(3000, () => console.log(`Сервер на http://localhost:3000`));
-}
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Сервер успешно запущен на порту ${PORT}`);
+});
