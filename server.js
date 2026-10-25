@@ -1,6 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const { createClient } = require('@libsql/client'); // Важно: /web
+const { createClient } = require('@libsql/client/web'); // Важно: /web
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');

@@ -7,6 +7,8 @@
   node_bundler = "esbuild"
   external_node_modules = ["express", "serverless-http", "bcryptjs", "jsonwebtoken", "cors"]
 
+[functions.esbuild]
+  platform = "node"
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
