@@ -3,12 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<!-- Календарь Flatpickr -->
+<title>Мои дедлайны</title>
+<!-- Библиотека ИИ -->
+<script src="https://js.puter.com/v2/" defer></script>
+<!-- Шрифт -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Красивый календарь (спасает iPhone) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<title>Мои дедлайны</title>
-<script src="https://js.puter.com/v2/" defer></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #f0f4f8;
@@ -147,7 +149,6 @@
   .upload-btn { background: var(--primary); color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
   #bg-upload { display: none; }
 
-  /* Стили для Telegram в настройках */
   .tg-connect-box { background: rgba(0, 0, 0, 0.04); padding: 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 8px; }
   [data-theme="dark"] .tg-connect-box { background: rgba(255, 255, 255, 0.05); }
   .tg-input-group { display: flex; gap: 8px; }
@@ -174,7 +175,7 @@
   <div class="hero">
     <h1>Управляй своим временем</h1>
     <p>Добавляй задачи, следи за сроками и ничего не забывай.</p>
-    <button class="btn-primary" id="addBtn" style="padding: 16px 32px; font-size: 1.1rem; border-radius: 30px;">+ Добавить дедлайн</button>
+    <button class="btn-primary" id="addBtn" style="padding: 16px 32px; font-size: 1.1rem; border-radius: 30px;" hidden>+ Добавить дедлайн</button>
   </div>
 
   <section class="grid" id="list"></section>
@@ -216,7 +217,7 @@
       <label class="field">Название <input type="text" id="dlTitle" required></label>
       <div class="grid-2">
         <label class="field">Срок с <input type="text" id="dlStart" placeholder="Выберите дату" required></label>
-<label class="field">по <input type="text" id="dlEnd" placeholder="Выберите дату" required></label>
+        <label class="field">по <input type="text" id="dlEnd" placeholder="Выберите дату" required></label>
       </div>
       <label class="field">Описание <textarea id="dlDesc" rows="3"></textarea></label>
       <button type="button" class="btn-primary btn-block" style="background: var(--warning); margin-bottom: 15px; font-size: 0.9rem; padding: 10px;" onclick="generateDescription(document.getElementById('dlTitle').value, this)">
@@ -249,10 +250,8 @@
       <button id="resetBg" style="background: none; border: 1px solid var(--danger); color: var(--danger); padding: 6px 12px; border-radius: 8px; cursor: pointer;">Сбросить</button>
     </div>
 
-    <!-- Блок Telegram -->
     <div class="settings-row" style="flex-direction: column; align-items: stretch; gap: 10px; margin-top: 15px;">
       <span style="font-size: 0.9rem;">Telegram уведомления</span>
-      
       <div id="tgFormContainer" class="tg-connect-box">
         <div class="tg-input-group">
           <input type="text" id="tgChatInput" placeholder="Введите Chat ID">
@@ -260,7 +259,6 @@
         </div>
         <span style="font-size: 0.75rem; color: var(--muted);">Напишите боту /start, чтобы узнать ID</span>
       </div>
-
       <div id="tgSuccessContainer" class="tg-success" hidden>
         <span>✅</span> Telegram успешно привязан
       </div>
@@ -276,14 +274,18 @@
   const $ = s => document.querySelector(s);
   const $$ = s => document.querySelectorAll(s);
 
+  // Безопасная функция запросов
   async function api(path, method = 'GET', body = null) {
     const headers = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    
     const res = await fetch(API_URL + path, { method, headers, body: body ? JSON.stringify(body) : null });
-        if (!res.ok) {
-      alert("ОШИБКА СЕРВЕРА: " + res.status + ". " + text); // Покажет статус (401, 500) и текст
-      throw data;
-    }
+    const text = await res.text();
+    let data;
+    try { data = text ? JSON.parse(text) : {}; } catch (e) { data = { error: text }; }
+    
+    if (!res.ok) throw data;
+    return data;
   }
 
   // --- ТЕМА И ФОН ---
@@ -334,7 +336,7 @@
     applyBackground(null);
   };
 
-  // --- НАСТРОЙКИ И TELEGRAM ---
+  // --- НАСТРОЙКИ ---
   $('#settingsBtn').onclick = async () => {
     $('#settingsOverlay').classList.add('open');
     try {
@@ -346,7 +348,7 @@
         $('#tgFormContainer').hidden = false;
         $('#tgSuccessContainer').hidden = true;
       }
-    } catch (e) { console.error("Ошибка проверки Telegram:", e); }
+    } catch (e) {}
   };
 
   $('#saveTgBtn').onclick = async () => {
@@ -356,27 +358,16 @@
       await api('/link-telegram', 'POST', { chat_id });
       $('#tgFormContainer').hidden = true;
       $('#tgSuccessContainer').hidden = false;
-    } catch (e) { 
-      alert('Ошибка привязки: ' + (e.error || 'Проверьте правильность ID')); 
-    }
+    } catch (e) { alert('Ошибка привязки: ' + (e.error || 'Проверьте ID')); }
   };
 
   // --- УВЕДОМЛЕНИЯ ---
-  function requestNotifications() {
-    if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
-      Notification.requestPermission();
-    }
-  }
-
   function checkNotifications(items) {
-    if (Notification.permission !== "granted") return;
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
     const today = new Date().toISOString().split('T')[0];
     items.forEach(item => {
       if (item.end_date === today) {
-        new Notification("Дедлайн сегодня!", {
-          body: `Не забудьте: ${item.title}`,
-          icon: "https://cdn-icons-png.flaticon.com/512/2876/2876933.png"
-        });
+        new Notification("Дедлайн сегодня!", { body: `Не забудьте: ${item.title}` });
       }
     });
   }
@@ -390,7 +381,7 @@
       $('#logoutBtn').hidden = false;
       $('#addBtn').hidden = false;
       loadDeadlines();
-      requestNotifications();
+      if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
     } else {
       $('#authOverlay').classList.add('open');
       $('#userBadge').hidden = true;
@@ -415,74 +406,94 @@
     };
   });
 
-     $('#registerForm').onsubmit = async (e) => {
+  $('#registerForm').onsubmit = async (e) => {
     e.preventDefault();
     $('#regError').hidden = true;
-    
     try {
-      const res = await fetch(API_URL + '/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: $('#regName').value,
-          email: $('#regEmail').value.trim().toLowerCase(),
-          password: $('#regPass').value
-        })
+      const data = await api('/register', 'POST', {
+        name: $('#regName').value,
+        email: $('#regEmail').value.trim().toLowerCase(),
+        password: $('#regPass').value
       });
-
-      const data = await res.json();
-      
-      if (!res.ok) {
-        alert("ОШИБКА: " + data.error); // Покажет точный текст от сервера
-        return;
-      }
-
       token = data.token;
       localStorage.setItem('token', token);
       updateUI();
-      
     } catch (err) {
-      alert("СЕТЕВАЯ ОШИБКА: " + err.message); // Покажет, если нет связи с сервером
+      $('#regError').innerText = err.error || 'Ошибка регистрации';
+      $('#regError').hidden = false;
     }
   };
 
-    $('#loginForm').onsubmit = async (e) => {
+  $('#loginForm').onsubmit = async (e) => {
     e.preventDefault();
     $('#logError').hidden = true;
-    
-    const email = $('#logEmail').value.trim().toLowerCase();
-    const password = $('#logPass').value;
-
     try {
-      const res = await fetch(API_URL + '/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+      const data = await api('/login', 'POST', {
+        email: $('#logEmail').value.trim().toLowerCase(),
+        password: $('#logPass').value
       });
-      
-      const data = await res.json();
-      if (!res.ok) throw data;
-      
       token = data.token;
       localStorage.setItem('token', token);
-      
-      // ОКНО №1 (Проверяем, что токен получен)
-      alert("1. УСПЕХ! Сервер выдал токен: " + token.substring(0, 10) + "...");
-      
       updateUI();
-      
     } catch (err) {
-      $('#logError').innerText = err.error || 'Неверный email или пароль';
+      $('#logError').innerText = err.error || 'Неверный логин или пароль';
       $('#logError').hidden = false;
     }
   };
-   async function loadDeadlines() {
+
+  $('#logoutBtn').onclick = () => {
+    token = null;
+    localStorage.removeItem('token');
+    updateUI();
+  };
+
+  // --- КАЛЕНДАРЬ (Для iPhone) ---
+  if (typeof flatpickr !== 'undefined') {
+    flatpickr("#dlStart", { dateFormat: "Y-m-d", locale: "ru", disableMobile: true });
+    flatpickr("#dlEnd", { dateFormat: "Y-m-d", locale: "ru", disableMobile: true });
+  }
+
+  // --- ДЕДЛАЙНЫ ---
+  $('#addBtn').onclick = () => {
+    $('#dlForm').reset();
+    $('#dlError').hidden = true;
+    $('#dlOverlay').classList.add('open');
+  };
+
+  $('#dlForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const start = $('#dlStart').value;
+    const end = $('#dlEnd').value;
+    
+    if (!start || !end) {
+      $('#dlError').innerText = "Пожалуйста, выберите обе даты";
+      $('#dlError').hidden = false;
+      return;
+    }
+
+    try {
+      await api('/deadlines', 'POST', {
+        title: $('#dlTitle').value,
+        start_date: start,
+        end_date: end,
+        description: $('#dlDesc').value
+      });
+      $('#dlOverlay').classList.remove('open');
+      loadDeadlines();
+    } catch (err) {
+      $('#dlError').innerText = err.error || 'Ошибка';
+      $('#dlError').hidden = false;
+    }
+  };
+
+  async function loadDeadlines() {
     try {
       const items = await api('/deadlines');
-      
       const list = $('#list');
       list.innerHTML = '';
       $('#empty').hidden = items.length > 0;
+
+      checkNotifications(items);
 
       items.forEach(item => {
         const today = new Date(); today.setHours(0,0,0,0);
@@ -491,116 +502,37 @@
         
         let statusClass = 'active';
         let statusText = 'В процессе';
-        let daysText = `Осталось ${diffDays} дн.`;
+        let daysText = '';
         
-        if (diffDays < 0) { statusClass = 'danger'; statusText = 'Просрочено'; }
-        else if (diffDays === 0) { statusClass = 'warning'; statusText = 'Сегодня'; }
+        if (diffDays < 0) {
+          statusClass = 'danger'; statusText = 'Просрочено'; daysText = `Просрочено на ${Math.abs(diffDays)} дн.`;
+        } else if (diffDays === 0) {
+          statusClass = 'warning'; statusText = 'Сегодня'; daysText = 'Последний день!';
+        } else if (diffDays <= 3) {
+          statusClass = 'warning'; statusText = 'Скоро'; daysText = `Осталось ${diffDays} дн.`;
+        } else {
+          daysText = `Осталось ${diffDays} дн.`;
+        }
 
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
           <div class="card-header">
             <h3 class="card-title">${item.title}</h3>
+            <button class="card-delete" onclick="deleteDeadline(${item.id})">✕</button>
           </div>
+          <div class="card-dates">📅 ${item.start_date} — ${item.end_date}</div>
           <p class="card-desc">${item.description || 'Без описания'}</p>
+          <div class="card-footer">
+            <span class="badge ${statusClass}">${statusText}</span>
+            <span class="days-left" style="color: var(--${statusClass === 'active' ? 'muted' : statusClass})">${daysText}</span>
+          </div>
         `;
         list.appendChild(card);
       });
-    } catch (e) {
-      // Если произошла ошибка - показываем её огромным окном!
-      alert("ОШИБКА ЗАГРУЗКИ: " + JSON.stringify(e));
-    }
-  }
-  
-  $('#logoutBtn').onclick = () => {
-    token = null;
-    localStorage.removeItem('token');
-    updateUI();
-  };
-  // Инициализация красивого календаря для iPhone и Android
-  flatpickr("#dlStart", {
-    dateFormat: "Y-m-d",
-    locale: "ru",
-    disableMobile: true
-  });
-
-  flatpickr("#dlEnd", {
-    dateFormat: "Y-m-d",
-    locale: "ru",
-    disableMobile: true
-  });
-
-  // --- ДЕДЛАЙНЫ ---
-  $('#addBtn').onclick = () => {
-    $('#dlForm').reset();
-    $('#dlError').hidden = true;
-    $('#dlOverlay').classList.add('open');
-  };
-  // --- ДЕДЛАЙНЫ ---
-  $('#addBtn').onclick = () => {
-    $('#dlForm').reset();
-    $('#dlError').hidden = true;
-    $('#dlOverlay').classList.add('open');
-  };
-
-      $('#dlForm').onsubmit = async (e) => {
-    e.preventDefault();
-    
-    const title = $('#dlTitle').value;
-    const start = $('#dlStart').value;
-    const end = $('#dlEnd').value;
-    const desc = $('#dlDesc').value;
-
-    if (!start || !end) {
-      $('#dlError').innerText = "⚠️ Пожалуйста, выберите обе даты в календаре.";
-      $('#dlError').hidden = false;
-      return;
-    }
-
-    try {
-      await api('/deadlines', 'POST', {
-        title: title,
-        start_date: start,
-        end_date: end,
-        description: desc
-      });
-        $('#dlForm').onsubmit = async (e) => {
-    e.preventDefault();
-    alert("1. Кнопка Готово нажата!"); // Проверяем, что JS работает
-
-    const title = $('#dlTitle').value;
-    const start = $('#dlStart').value;
-    const end = $('#dlEnd').value;
-    
-    alert("2. Даты, которые видит телефон: С = " + start + " | По = " + end);
-
-    if (!start || !end) {
-      alert("3. СТОП! Даты пустые. Safari их не передал.");
-      return;
-    }
-
-    try {
-      alert("4. Отправляю на сервер...");
-      await api('/deadlines', 'POST', {
-        title: title,
-        start_date: start,
-        end_date: end,
-        description: $('#dlDesc').value
-      });
-      alert("5. УСПЕХ! Сервер принял дедлайн.");
-      $('#dlOverlay').classList.remove('open');
-      loadDeadlines();
-    } catch (err) {
-      alert("6. ОШИБКА СЕРВЕРА: " + JSON.stringify(err));
-    }
-  };
     } catch (e) { 
-      console.error(e); 
-      if (e.error && e.error.includes('jwt')) {
-        localStorage.removeItem('token');
-        token = null;
-        updateUI();
-      }
+      console.error(e);
+      $('#list').innerHTML = '<p style="color: red; text-align: center;">Не удалось загрузить список. Попробуйте обновить страницу.</p>';
     }
   }
 
@@ -613,7 +545,7 @@
   // --- ИИ ---
   async function generateDescription(title, btn) {
     if (!title) { alert("Сначала введите название!"); return; }
-    if (typeof puter === 'undefined') { alert("ИИ не загрузился (нужен VPN)"); return; }
+    if (typeof puter === 'undefined') { alert("ИИ не загрузился (возможно, нужен VPN)"); return; }
     const originalText = btn.innerText;
     btn.innerText = "⏳ Генерирую...";
     try {
@@ -626,6 +558,7 @@
     }
   }
 
+  // Запуск
   updateUI();
 </script>
 </body>
