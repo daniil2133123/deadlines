@@ -460,34 +460,36 @@
 
     $('#dlForm').onsubmit = async (e) => {
     e.preventDefault();
-    alert("1. Нажата кнопка Готово!"); // <--- Проверка
+    
+    // ХИТРОСТЬ ДЛЯ SAFARI: снимаем фокус, чтобы браузер применил выбранные даты
+    document.activeElement.blur();
+
+    const title = $('#dlTitle').value;
+    const start = $('#dlStart').value;
+    const end = $('#dlEnd').value;
+    const desc = $('#dlDesc').value;
+
+    // Проверка на пустые даты (для iPhone)
+    if (!start || !end) {
+      $('#dlError').innerText = "⚠️ Пожалуйста, выберите даты в календаре и обязательно нажмите 'Готово' на колесике.";
+      $('#dlError').hidden = false;
+      return;
+    }
 
     try {
-      const title = $('#dlTitle').value;
-      const start = $('#dlStart').value;
-      const end = $('#dlEnd').value;
-      const desc = $('#dlDesc').value;
-
-      alert(`2. Данные: Название=${title}, С=${start}, По=${end}`); // <--- Проверка
-
       await api('/deadlines', 'POST', {
         title: title,
         start_date: start,
         end_date: end,
         description: desc
       });
-      
-      alert("3. Успешно отправлено на сервер!"); // <--- Проверка
-      
       $('#dlOverlay').classList.remove('open');
       loadDeadlines();
     } catch (err) {
-      alert("ОШИБКА СЕРВЕРА: " + JSON.stringify(err)); // <--- Покажет ошибку
       $('#dlError').innerText = err.error || 'Ошибка';
       $('#dlError').hidden = false;
     }
-  };   
-
+  };
   async function loadDeadlines() {
     try {
       const items = await api('/deadlines');
