@@ -9,7 +9,9 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.use(express.static('public'));
-
+app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/public/index.html');
+})
 const JWT_SECRET = process.env.JWT_SECRET || 'secret123';
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
