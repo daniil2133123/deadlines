@@ -1,4 +1,5 @@
 require('dotenv').config();
+require('dotenv').config({ override: false });
 const express = require('express');
 const { createClient } = require('@libsql/client');
 const bcrypt = require('bcryptjs');
