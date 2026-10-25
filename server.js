@@ -56,8 +56,9 @@ app.post('/api/register', async (req, res) => {
       sql: `INSERT INTO users (name, email, password) VALUES (?, ?, ?)`,
       args: [name, email, hashedPassword]
     });
-    const token = jwt.sign({ id: result.lastInsertRowid, email }, JWT_SECRET);
-    res.json({ token, user: { id: result.lastInsertRowid, name, email } });
+    const userId = Number(result.lastInsertRowid);
+const token = jwt.sign({ id: userId, email }, JWT_SECRET);
+res.json({ token, user: { id: userId, name, email } });
     } catch (error) {
     console.error("ОШИБКА БАЗЫ:", error); // Это покажет ошибку в логах Netlify
     res.status(400).json({ error: error.message || "Ошибка при регистрации" });
