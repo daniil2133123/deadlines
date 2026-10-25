@@ -280,8 +280,10 @@
     const headers = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const res = await fetch(API_URL + path, { method, headers, body: body ? JSON.stringify(body) : null });
-    if (!res.ok) throw await res.json();
-    return res.json();
+        if (!res.ok) {
+      alert("ОШИБКА СЕРВЕРА: " + res.status + ". " + text); // Покажет статус (401, 500) и текст
+      throw data;
+    }
   }
 
   // --- ТЕМА И ФОН ---
@@ -476,6 +478,7 @@
   };
   async function loadDeadlines() {
     try {
+       alert("2. Пытаюсь загрузить дедлайны...");
       const items = await api('/deadlines');
       const list = $('#list');
       list.innerHTML = '';
