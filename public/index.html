@@ -500,64 +500,36 @@
         end_date: end,
         description: desc
       });
+        $('#dlForm').onsubmit = async (e) => {
+    e.preventDefault();
+    alert("1. Кнопка Готово нажата!"); // Проверяем, что JS работает
+
+    const title = $('#dlTitle').value;
+    const start = $('#dlStart').value;
+    const end = $('#dlEnd').value;
+    
+    alert("2. Даты, которые видит телефон: С = " + start + " | По = " + end);
+
+    if (!start || !end) {
+      alert("3. СТОП! Даты пустые. Safari их не передал.");
+      return;
+    }
+
+    try {
+      alert("4. Отправляю на сервер...");
+      await api('/deadlines', 'POST', {
+        title: title,
+        start_date: start,
+        end_date: end,
+        description: $('#dlDesc').value
+      });
+      alert("5. УСПЕХ! Сервер принял дедлайн.");
       $('#dlOverlay').classList.remove('open');
       loadDeadlines();
     } catch (err) {
-      $('#dlError').innerText = err.error || 'Ошибка';
-      $('#dlError').hidden = false;
+      alert("6. ОШИБКА СЕРВЕРА: " + JSON.stringify(err));
     }
   };
-  async function loadDeadlines() {
-    try {
-      const items = await api('/deadlines');
-      const list = $('#list');
-      list.innerHTML = '';
-      $('#empty').hidden = items.length > 0;
-
-      checkNotifications(items);
-
-      items.forEach(item => {
-        const today = new Date(); today.setHours(0,0,0,0);
-        const end = new Date(item.end_date.replace(/-/g, '/')); end.setHours(0,0,0,0);
-        const diffTime = end - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
-        let statusClass = 'active';
-        let statusText = 'В процессе';
-        let daysText = '';
-        
-        if (diffDays < 0) {
-          statusClass = 'danger';
-          statusText = 'Просрочено';
-          daysText = `Просрочено на ${Math.abs(diffDays)} дн.`;
-        } else if (diffDays === 0) {
-          statusClass = 'warning';
-          statusText = 'Сегодня';
-          daysText = 'Последний день!';
-        } else if (diffDays <= 3) {
-          statusClass = 'warning';
-          statusText = 'Скоро';
-          daysText = `Осталось ${diffDays} дн.`;
-        } else {
-          daysText = `Осталось ${diffDays} дн.`;
-        }
-
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <div class="card-header">
-            <h3 class="card-title">${item.title}</h3>
-            <button class="card-delete" onclick="deleteDeadline(${item.id})">✕</button>
-          </div>
-          <div class="card-dates">📅 ${item.start_date} — ${item.end_date}</div>
-          <p class="card-desc">${item.description || 'Без описания'}</p>
-          <div class="card-footer">
-            <span class="badge ${statusClass}">${statusText}</span>
-            <span class="days-left" style="color: var(--${statusClass === 'active' ? 'muted' : statusClass})">${daysText}</span>
-          </div>
-        `;
-        list.appendChild(card);
-      });
     } catch (e) { 
       console.error(e); 
       if (e.error && e.error.includes('jwt')) {
