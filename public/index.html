@@ -458,22 +458,35 @@
     $('#dlOverlay').classList.add('open');
   };
 
-  $('#dlForm').onsubmit = async (e) => {
+    $('#dlForm').onsubmit = async (e) => {
     e.preventDefault();
+    alert("1. Нажата кнопка Готово!"); // <--- Проверка
+
     try {
+      const title = $('#dlTitle').value;
+      const start = $('#dlStart').value;
+      const end = $('#dlEnd').value;
+      const desc = $('#dlDesc').value;
+
+      alert(`2. Данные: Название=${title}, С=${start}, По=${end}`); // <--- Проверка
+
       await api('/deadlines', 'POST', {
-        title: $('#dlTitle').value,
-        start_date: $('#dlStart').value,
-        end_date: $('#dlEnd').value,
-        description: $('#dlDesc').value
+        title: title,
+        start_date: start,
+        end_date: end,
+        description: desc
       });
+      
+      alert("3. Успешно отправлено на сервер!"); // <--- Проверка
+      
       $('#dlOverlay').classList.remove('open');
       loadDeadlines();
     } catch (err) {
+      alert("ОШИБКА СЕРВЕРА: " + JSON.stringify(err)); // <--- Покажет ошибку
       $('#dlError').innerText = err.error || 'Ошибка';
       $('#dlError').hidden = false;
     }
-  };
+  };   
 
   async function loadDeadlines() {
     try {
